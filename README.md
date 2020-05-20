@@ -1,4 +1,4 @@
-A simple video chatting App, that uses the webRTC API and a Golang backend.
+A simple video chatting App, that uses the webRTC API and a Node backend.
 
 
 Features:
