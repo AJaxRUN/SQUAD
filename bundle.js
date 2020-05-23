@@ -1,4 +1,89 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const Peer = require("simple-peer");
+let socket = io();
+let video = document.querySelector('video');
+let client = {};
+
+//get stream
+console.log("Hii")
+navigator.mediaDevices.getUserMedia({ video: true, audio: false})
+    .then(stream => {
+        socket.emit('newClient');
+        video.srcObject = stream;
+        video.play();
+        console.log("asdada")
+        //used to initialize a peer
+        const initPeer = (type) => {
+            console.log("Init peer: "+ type)
+            let peer = new Peer({ 
+                initiator:(type =='init')?true:false,
+                stream: stream,
+                trickle: false
+            });
+            peer.on('stream', (stream) => {
+                console.log("On stream signal")
+                createVideo(stream);
+            })
+            peer.on('close', () => {
+                document.getElementById("peerVideo").remove();
+                peer.destroy();
+            })
+            return peer;
+        }
+
+        //For peer of type init - to send offer 
+        const makePeer = () => {
+            client.gotAnswer = false;
+            let peer = initPeer('init');
+            peer.on('signal', (data) => {
+                console.log("make peer signal:")
+                if(!client.gotAnswer) {
+                    socket.emit('offer', data);
+                }
+            });
+            client.peer = peer;
+        }
+
+        //When another client gives offer and we have to send offer
+        const frontAnswer = (offer) => {
+            let peer = initPeer('notInit');
+            console.log("front answer:")
+            peer.on('signal', (data) => {
+                console.log("front signal:")
+                socket.emit('answer', data);
+            });
+            peer.signal(offer);
+        }
+
+        const signalAnswer = (answer) => {
+            console.log("Signal Answer!")
+            client.gotAnswer = true;
+            let peer = client.peer;
+            peer.signal(answer);
+        }
+
+        const createVideo = (stream) => {
+            video = document.createElement("video");
+            video.id = "peerVideo";
+            video.class = "embed-responsive-item";
+            video.srcObject = stream;
+            document.querySelector("#peerDiv").appendChild(video);
+            video.play();
+        }
+
+        const sessionActive = () =>{ 
+            alert("Session Active, comeback later!");
+        }
+
+        //Events for calling these functions
+        socket.on('backOffer', frontAnswer);
+        socket.on('backAnswer', signalAnswer);
+        socket.on('sessionActive', sessionActive);
+        socket.on('createPeer', makePeer);
+    })
+    .catch(err => console.log(err));
+
+},{"simple-peer":28}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -152,9 +237,9 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],2:[function(require,module,exports){
-
 },{}],3:[function(require,module,exports){
+
+},{}],4:[function(require,module,exports){
 (function (Buffer){
 /*!
  * The buffer module from node.js, for the browser.
@@ -1935,7 +2020,7 @@ function numberIsNaN (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"base64-js":1,"buffer":3,"ieee754":6}],4:[function(require,module,exports){
+},{"base64-js":2,"buffer":4,"ieee754":7}],5:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -2460,7 +2545,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // originally pulled out of simple-peer
 
 module.exports = function getBrowserRTC () {
@@ -2477,7 +2562,7 @@ module.exports = function getBrowserRTC () {
   return wrtc
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -2563,7 +2648,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -2588,7 +2673,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -2774,7 +2859,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 let promise
 
 module.exports = typeof queueMicrotask === 'function'
@@ -2784,7 +2869,7 @@ module.exports = typeof queueMicrotask === 'function'
     .then(cb)
     .catch(err => setTimeout(() => { throw err }, 0))
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function (process,global){
 'use strict'
 
@@ -2838,7 +2923,7 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":8,"safe-buffer":26}],11:[function(require,module,exports){
+},{"_process":9,"safe-buffer":27}],12:[function(require,module,exports){
 'use strict';
 
 function _inheritsLoose(subClass, superClass) { subClass.prototype = Object.create(superClass.prototype); subClass.prototype.constructor = subClass; subClass.__proto__ = superClass; }
@@ -2967,7 +3052,7 @@ createErrorType('ERR_UNKNOWN_ENCODING', function (arg) {
 createErrorType('ERR_STREAM_UNSHIFT_AFTER_END_EVENT', 'stream.unshift() after end event');
 module.exports.codes = codes;
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -3109,7 +3194,7 @@ Object.defineProperty(Duplex.prototype, 'destroyed', {
   }
 });
 }).call(this,require('_process'))
-},{"./_stream_readable":14,"./_stream_writable":16,"_process":8,"inherits":7}],13:[function(require,module,exports){
+},{"./_stream_readable":15,"./_stream_writable":17,"_process":9,"inherits":8}],14:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3149,7 +3234,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":15,"inherits":7}],14:[function(require,module,exports){
+},{"./_stream_transform":16,"inherits":8}],15:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -4276,7 +4361,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../errors":11,"./_stream_duplex":12,"./internal/streams/async_iterator":17,"./internal/streams/buffer_list":18,"./internal/streams/destroy":19,"./internal/streams/from":21,"./internal/streams/state":23,"./internal/streams/stream":24,"_process":8,"buffer":3,"events":4,"inherits":7,"string_decoder/":31,"util":2}],15:[function(require,module,exports){
+},{"../errors":12,"./_stream_duplex":13,"./internal/streams/async_iterator":18,"./internal/streams/buffer_list":19,"./internal/streams/destroy":20,"./internal/streams/from":22,"./internal/streams/state":24,"./internal/streams/stream":25,"_process":9,"buffer":4,"events":5,"inherits":8,"string_decoder/":32,"util":3}],16:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4478,7 +4563,7 @@ function done(stream, er, data) {
   if (stream._transformState.transforming) throw new ERR_TRANSFORM_ALREADY_TRANSFORMING();
   return stream.push(null);
 }
-},{"../errors":11,"./_stream_duplex":12,"inherits":7}],16:[function(require,module,exports){
+},{"../errors":12,"./_stream_duplex":13,"inherits":8}],17:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -5178,7 +5263,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../errors":11,"./_stream_duplex":12,"./internal/streams/destroy":19,"./internal/streams/state":23,"./internal/streams/stream":24,"_process":8,"buffer":3,"inherits":7,"util-deprecate":33}],17:[function(require,module,exports){
+},{"../errors":12,"./_stream_duplex":13,"./internal/streams/destroy":20,"./internal/streams/state":24,"./internal/streams/stream":25,"_process":9,"buffer":4,"inherits":8,"util-deprecate":34}],18:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -5388,7 +5473,7 @@ var createReadableStreamAsyncIterator = function createReadableStreamAsyncIterat
 
 module.exports = createReadableStreamAsyncIterator;
 }).call(this,require('_process'))
-},{"./end-of-stream":20,"_process":8}],18:[function(require,module,exports){
+},{"./end-of-stream":21,"_process":9}],19:[function(require,module,exports){
 'use strict';
 
 function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
@@ -5599,7 +5684,7 @@ function () {
 
   return BufferList;
 }();
-},{"buffer":3,"util":2}],19:[function(require,module,exports){
+},{"buffer":4,"util":3}],20:[function(require,module,exports){
 (function (process){
 'use strict'; // undocumented cb() API, needed for core, not for public API
 
@@ -5707,7 +5792,7 @@ module.exports = {
   errorOrDestroy: errorOrDestroy
 };
 }).call(this,require('_process'))
-},{"_process":8}],20:[function(require,module,exports){
+},{"_process":9}],21:[function(require,module,exports){
 // Ported from https://github.com/mafintosh/end-of-stream with
 // permission from the author, Mathias Buus (@mafintosh).
 'use strict';
@@ -5812,12 +5897,12 @@ function eos(stream, opts, callback) {
 }
 
 module.exports = eos;
-},{"../../../errors":11}],21:[function(require,module,exports){
+},{"../../../errors":12}],22:[function(require,module,exports){
 module.exports = function () {
   throw new Error('Readable.from is not available in the browser')
 };
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 // Ported from https://github.com/mafintosh/pump with
 // permission from the author, Mathias Buus (@mafintosh).
 'use strict';
@@ -5915,7 +6000,7 @@ function pipeline() {
 }
 
 module.exports = pipeline;
-},{"../../../errors":11,"./end-of-stream":20}],23:[function(require,module,exports){
+},{"../../../errors":12,"./end-of-stream":21}],24:[function(require,module,exports){
 'use strict';
 
 var ERR_INVALID_OPT_VALUE = require('../../../errors').codes.ERR_INVALID_OPT_VALUE;
@@ -5943,10 +6028,10 @@ function getHighWaterMark(state, options, duplexKey, isDuplex) {
 module.exports = {
   getHighWaterMark: getHighWaterMark
 };
-},{"../../../errors":11}],24:[function(require,module,exports){
+},{"../../../errors":12}],25:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":4}],25:[function(require,module,exports){
+},{"events":5}],26:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -5957,7 +6042,7 @@ exports.PassThrough = require('./lib/_stream_passthrough.js');
 exports.finished = require('./lib/internal/streams/end-of-stream.js');
 exports.pipeline = require('./lib/internal/streams/pipeline.js');
 
-},{"./lib/_stream_duplex.js":12,"./lib/_stream_passthrough.js":13,"./lib/_stream_readable.js":14,"./lib/_stream_transform.js":15,"./lib/_stream_writable.js":16,"./lib/internal/streams/end-of-stream.js":20,"./lib/internal/streams/pipeline.js":22}],26:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":13,"./lib/_stream_passthrough.js":14,"./lib/_stream_readable.js":15,"./lib/_stream_transform.js":16,"./lib/_stream_writable.js":17,"./lib/internal/streams/end-of-stream.js":21,"./lib/internal/streams/pipeline.js":23}],27:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -6021,7 +6106,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":3}],27:[function(require,module,exports){
+},{"buffer":4}],28:[function(require,module,exports){
 (function (Buffer){
 /*! simple-peer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
 var debug = require('debug')('simple-peer')
@@ -7034,7 +7119,7 @@ Peer.channelConfig = {}
 module.exports = Peer
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":3,"debug":28,"get-browser-rtc":5,"queue-microtask":9,"randombytes":10,"readable-stream":25}],28:[function(require,module,exports){
+},{"buffer":4,"debug":29,"get-browser-rtc":6,"queue-microtask":10,"randombytes":11,"readable-stream":26}],29:[function(require,module,exports){
 (function (process){
 /* eslint-env browser */
 
@@ -7302,7 +7387,7 @@ formatters.j = function (v) {
 };
 
 }).call(this,require('_process'))
-},{"./common":29,"_process":8}],29:[function(require,module,exports){
+},{"./common":30,"_process":9}],30:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -7570,7 +7655,7 @@ function setup(env) {
 
 module.exports = setup;
 
-},{"ms":30}],30:[function(require,module,exports){
+},{"ms":31}],31:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -7734,7 +7819,7 @@ function plural(ms, msAbs, n, name) {
   return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
 }
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8031,7 +8116,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":32}],32:[function(require,module,exports){
+},{"safe-buffer":33}],33:[function(require,module,exports){
 /*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
@@ -8098,7 +8183,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":3}],33:[function(require,module,exports){
+},{"buffer":4}],34:[function(require,module,exports){
 (function (global){
 
 /**
@@ -8169,81 +8254,4 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],34:[function(require,module,exports){
-let Peer = require("simple-peer");
-let socket = io();
-let video = document.querySelector('video');
-let client = {};
-
-//get stream
-navigator.mediaDevices.getUserMedia({ video: true, audio: true})
-    .then(stream => {
-        socket.emit('newClient');
-        video.srcObject = stream;
-        video.play();
-
-        //used to initialize a peer
-        const initPeer = (type) => {
-            let peer = new Peer({ 
-                initiator:(type =='init')?true:false,
-                stream: stream,
-                trickle: false
-            });
-            peer.on('stream', (stream) => {
-                createVideo(stream);
-            })
-            peer.on('close', () => {
-                document.getElementById("peerVideo").remove();
-                peer.destroy();
-            })
-            return peer;
-        }
-
-        //For peer of type init - to send offer
-        const makePeer = () => {
-            client.gotAnswer = false;
-            let peer = initPeer('init');
-            peer.on('signal', (data) => {
-                if(!client.gotAnswer) {
-                    socket.emit('offer', data);
-                }
-            });
-            client.peer = peer;
-        }
-
-        //When another client gives offer and we have to send offer
-        const frontAnswer = (offer) => {
-            let peer = initPeer('notInit');
-            peer.on('signal', (data) => {
-                socket.emit('answer', data);
-            });
-            peer.signal(offer);
-        }
-
-        const signalAnswer = (answer) => {
-            client.gotAnswer = true;
-            let peer = client.peer;
-            peer.signal(answer);
-        }
-
-        const createVideo = (stream) => {
-            video = document.createElement("video");
-            video.id = "peerVideo";
-            video.class = "embed-responsive-item";
-            video.srcObject = stream;
-            document.querySelector("#peerDiv").appendChild(video);
-            video.play();
-        }
-
-        const sessionActive = () =>{ 
-            alert("Session Active, comeback later!");
-        }
-
-        //Events for calling these functions
-        socket.on('backOffer', frontAnswer);
-        socket.on('backAnswer', signalAnswer);
-        socket.on('sessionActive', sessionActive);
-        socket.on('createPeer', makePeer);
-    })
-    .catch(err => console.log(err));
-},{"simple-peer":27}]},{},[34]);
+},{}]},{},[1]);

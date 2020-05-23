@@ -1,16 +1,16 @@
 const Peer = require("simple-peer");
-const io = require('socket.io-client');
 let socket = io();
 let video = document.querySelector('video');
 let client = {};
 
 //get stream
+console.log("Hii")
 navigator.mediaDevices.getUserMedia({ video: true, audio: false})
     .then(stream => {
         socket.emit('newClient');
         video.srcObject = stream;
         video.play();
-
+        console.log("asdada")
         //used to initialize a peer
         const initPeer = (type) => {
             console.log("Init peer: "+ type)

@@ -1,15 +1,15 @@
 {
-  "name": "we-de-oh",
+  "name": "SQUAD",
   "version": "1.0.0",
   "description": "Simple video chat app with webRTC",
   "main": "index.js",
   "scripts": {
     "start": "nodemon server.js",
-    "watch": "npx watchify ./my.js -o ./myb.js"
+    "watch": "npx watchify ./main.js -o ./bundle.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AJaxRUN/We-De-Oh.git"
+    "url": "git+https://github.com/AJaxRUN/SQUAD.git"
   },
   "keywords": [
     "video",
@@ -20,9 +20,9 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/AJaxRUN/We-De-Oh/issues"
+    "url": "https://github.com/AJaxRUN/SQUAD/issues"
   },
-  "homepage": "https://github.com/AJaxRUN/We-De-Oh#readme",
+  "homepage": "https://github.com/AJaxRUN/SQUAD#readme",
   "dependencies": {
     "express": "^4.17.1",
     "nodemon": "^2.0.4",

@@ -2,13 +2,15 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 3000;
 
 app.use(express.static(__dirname));
 let clients = 0;
 
 io.on('connection', (socket) => { 
-    io.on("newClient", () => {
+    console.log("helo")
+    socket.on("newClient", () => {
+        console.log("hiii")
         if(clients < 2) {
             if(clients === 1) {
                 io.emit('createPeer');
