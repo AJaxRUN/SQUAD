@@ -8,14 +8,14 @@ app.use(express.static(__dirname));
 let clients = 0;
 
 io.on('connection', (socket) => { 
-    socket.on("newClient", () => {
+    io.on("newClient", () => {
         if(clients < 2) {
             if(clients === 1) {
-                socket.emit('createPeer');
+                io.emit('createPeer');
             }
         }
         else {
-            socket.emit('sessionActive');
+            io.emit('sessionActive');
         }
         clients ++;
     });
