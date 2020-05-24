@@ -49,6 +49,7 @@ func main() {
 			makeOffer()
 		}
 		if connections > 2 {
+			connections--
 			s.Emit("sessionActive")
 		}
 	})
@@ -69,6 +70,15 @@ func main() {
 
 	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
 		fmt.Println("closed", reason)
+		//To remove connections from connpool on disconnecting
+		if len(connPool) > 0 {
+			connections--
+			if connPool[0] == s {
+				connPool = connPool[1:len(connPool)]
+			} else {
+				connPool = connPool[:len(connPool)-1]
+			}
+		}
 	})
 
 	go server.Serve()
@@ -78,4 +88,5 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("./")))
     log.Println("Serving at localhost:8080...")
     log.Fatal(http.ListenAndServe(":"+port, nil))
+    // log.Fatal(http.ListenAndServe(":8080", nil))
 }
