@@ -1,15 +1,15 @@
 package main
 
 import (
-    "log"
-	"net/http"
-	"os"
 	"fmt"
-	"github.com/googollee/go-socket.io"
+	"log"
+	"net/http"
+
+	socketio "github.com/googollee/go-socket.io"
 )
 
 var connPool []socketio.Conn //To hold all the connections
-var connections int //Number of connections
+var connections int          //Number of connections
 
 func makeOffer() {
 	connPool[0].Emit("createPeer")
@@ -24,17 +24,14 @@ func sendAnswer(answer string) {
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("$PORT must be set")
-	}
+	port := ":8080"
 
 	server, err := socketio.NewServer(nil)
-    if err != nil {
-        log.Fatal(err)
-    }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    server.OnConnect("/", func(s socketio.Conn) error {
+	server.OnConnect("/", func(s socketio.Conn) error {
 		s.SetContext("")
 		fmt.Println("connected:", s.ID())
 		return nil
@@ -53,7 +50,7 @@ func main() {
 			s.Emit("sessionActive")
 		}
 	})
-	
+
 	server.OnEvent("/", "offer", func(s socketio.Conn, msg string) {
 		fmt.Println("offer received")
 		sendOffer(msg)
@@ -84,9 +81,9 @@ func main() {
 	go server.Serve()
 	defer server.Close()
 
-    http.Handle("/socket.io/", server)
+	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("./")))
-    log.Println("Serving at localhost:8080...")
-    log.Fatal(http.ListenAndServe(":"+port, nil))
-    // log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Serving at localhost:8080...")
+	log.Fatal(http.ListenAndServe(":"+port, nil))
+	// log.Fatal(http.ListenAndServe(":8080", nil))
 }
