@@ -24,7 +24,7 @@ func sendAnswer(answer string) {
 }
 
 func main() {
-	port := ":8080"
+	port := "8080"
 
 	server, err := socketio.NewServer(nil)
 	if err != nil {
@@ -83,7 +83,7 @@ func main() {
 
 	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("./")))
-	log.Println("Serving at localhost:8080...")
+	log.Println("Serving at localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 }
