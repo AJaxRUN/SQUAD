@@ -1,89 +1,114 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 const Peer = require("simple-peer");
 const io = require('socket.io-client');
-let socket = io.connect('localhost:8080', {
-    'path': '/data',
-  });
+let socket = io.connect();
 let video = document.querySelector('video');
-let client = {};
-
-//get stream
-navigator.mediaDevices.getUserMedia({ video: true, audio: true})
+const roomID = "abcd123";
+let peersRef = [];
+navigator.mediaDevices.getUserMedia({video:true, audio:true})
     .then(stream => {
-        socket.emit('newClient');
         video.srcObject = stream;
         video.play();
+        socket.emit("newClient", roomID);
+        
+        socket.on("allUsers", users => {
+            if(users == "" || users == null) {
+                console.log("no users!")
+            }
+            else {
+                users = users.split(",");
+                console.log(users)
+                users.forEach(userID => {
+                    const peer = createPeer(userID, socket.id, stream);
+                    console.log("Creating peer object for:",userID)
+                    peersRef.push({
+                        peerID: userID,
+                        peer,
+                    });
+                });
+            }
+        })
 
-        //used to initialize a peer
-        const initPeer = (type) => {
-            console.log("Init peer: "+ type)
-            let peer = new Peer({ 
-                initiator:(type =='init')?true:false,
-                stream: stream,
-                trickle: false
-            });
-            peer.on('stream', (stream) => {
-                console.log("On stream signal")
-                createVideo(stream);
+        socket.on("userJoined", payload => {
+            console.log("User joined")
+            payload = JSON.parse(payload.toString())
+            const peer = addPeer(payload.Signal, payload.CallerID, stream);
+            peersRef.push({
+                peerID: payload.callerID,
+                peer,
             })
-            peer.on('close', () => {
-                document.getElementById("peerVideo").remove();
-                peer.destroy();
-            })
-            return peer;
-        }
+        });
 
-        //For peer of type init - to send offer 
-        const makePeer = () => {
-            client.gotAnswer = false;
-            let peer = initPeer('init');
-            peer.on('signal', (data) => {
-                console.log("make peer signal:")
-                if(!client.gotAnswer) {
-                    socket.emit('offer', JSON.stringify(data));
-                }
-            });
-            client.peer = peer;
-        }
+        socket.on("receiveReturnedSignal", payload => {
+            payload = JSON.parse(payload.toString());
+            const item = peersRef.find(p => p.peerID === payload.Id);
+            item.peer.signal(JSON.parse(payload.Signal));
+        });
 
-        //When another client gives offer and we have to send offer
-        const frontAnswer = (offer) => {
-            let peer = initPeer('notInit');
-            console.log("front answer:")
-            peer.on('signal', (data) => {
-                console.log("front signal:")
-                socket.emit('answer', JSON.stringify(data));
-            });
-            peer.signal(offer);
-        }
+        socket.on("disconnect", peerId => {
+            if(document.getElementById("peerVideo"+peerId)) {
+                document.getElementById("peerVideo"+peerId).remove();
+            }
+        });
 
-        const signalAnswer = (answer) => {
-            console.log("Signal Answer!")
-            client.gotAnswer = true;
-            let peer = client.peer;
-            peer.signal(answer);
-        }
-
-        const createVideo = (stream) => {
+        const createVideo = (stream, id) => {
             video = document.createElement("video");
-            video.id = "peerVideo";
+            video.id = "peerVideo" + id;
             video.class = "embed-responsive-item";
             video.srcObject = stream;
             document.querySelector("#peerDiv").appendChild(video);
             video.play();
         }
-
-        const sessionActive = () =>{ 
-            alert("Session Active, comeback later!");
+        
+        function createPeer(UserToSignal, CallerID, stream) {
+            const peer = new Peer({
+                initiator: true,
+                trickle: false,
+                stream,
+            });
+        
+            peer.on("stream", (stream) => {
+                console.log("Received stream createPeer:", UserToSignal);
+                createVideo(stream, UserToSignal);
+            });
+        
+            peer.on("signal", Signal => {
+                if(Signal.type && (Signal.type.toString()).toLowerCase() == "offer") {
+                    console.log("received signal:", Signal)
+                    socket.emit("sendingSignal", JSON.stringify({ UserToSignal:UserToSignal, CallerID:CallerID, Signal:JSON.stringify(Signal) }))
+                }
+            })
+            return peer;
         }
-
-        //Events for calling these functions
-        socket.on('backOffer', frontAnswer);
-        socket.on('backAnswer', signalAnswer);
-        socket.on('sessionActive', sessionActive);
-        socket.on('createPeer', makePeer);
+        
+        
+        function addPeer(incomingSignal, callerID, stream) {
+            const peer = new Peer({
+                initiator: false,
+                trickle: false,
+                renegotiate: false,
+                stream,
+            }); 
+            peer.on("stream", (stream) => {
+                console.log("Received stream addPeer:", callerID);
+                createVideo(stream, callerID);
+            });
+        
+            peer.on("signal", signal => {
+                console.log("returning signal:", signal)
+                if(signal.type && (signal.type.toString()).toLowerCase() == "answer") {
+                    socket.emit("returningSignal", JSON.stringify({ Signal:JSON.stringify(signal), CallerID:callerID }))
+                }
+            })
+        
+           peer.signal(JSON.parse(incomingSignal));
+        
+            return peer;
+        }
+            
     })
     .catch(err => console.log(err));
+
 
 },{"simple-peer":59,"socket.io-client":63}],2:[function(require,module,exports){
 module.exports = after
