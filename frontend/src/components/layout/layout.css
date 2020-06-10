@@ -1,0 +1,29 @@
+.CardLayout{
+    min-width:200px;
+    /* min-height: 200px; */
+  }
+.wrapper{
+  width:98vw;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-self: center;
+  justify-content: space-evenly;
+  height:90vh;
+
+}
+.video{
+  object-fit: cover
+}
+.box{
+  width: 100%;          
+  opacity: 0.8;  /* for demo purpose  */
+  top: 0px;
+  left: 0px;
+  position: relative;
+}
+.stack-top{
+  /* position: inherit; */
+  z-index: 9;
+  /* margin: 20px; */
+}
