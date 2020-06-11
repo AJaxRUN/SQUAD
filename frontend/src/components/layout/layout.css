@@ -23,7 +23,8 @@
   position: relative;
 }
 .stack-top{
-  /* position: inherit; */
+  /* position: inherit;
+   */
   z-index: 9;
   /* margin: 20px; */
 }
