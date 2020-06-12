@@ -110,11 +110,11 @@ func main() {
 		}
 	})
 
-	go server.Serve()
-	defer server.Close()
 
 	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("./")))
 	log.Println("Serving at localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+	server.Serve()
+	defer server.Close()
 }
