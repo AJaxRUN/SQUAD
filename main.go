@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	socketio "github.com/googollee/go-socket.io"
 )
@@ -42,11 +41,7 @@ func getConnectionsCSV() string {
 }
 
 func main() {
-	// port := "3000"
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("$PORT must be set")
-	}
+	port := "3000"
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		log.Fatal(err)
@@ -119,6 +114,6 @@ func main() {
 
 	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("./")))
-	log.Println("Serving at :" + port)
+	log.Println("Serving at localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
