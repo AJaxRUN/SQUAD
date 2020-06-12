@@ -7,7 +7,7 @@ const io = socket(server);
 
 const users = {};
 const socketToRoom = {};
-const port = 3000 || process.env.PORT;
+const port = process.env.PORT;
 
 app.use(express.static(__dirname));
 
