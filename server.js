@@ -1,39 +1,56 @@
-const express = require('express');
+const express = require("express");
+const http = require("http");
 const app = express();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
-const port = process.env.PORT || 3000;
+const server = http.createServer(app);
+const socket = require("socket.io");
+const io = socket(server);
+
+const users = {};
+const socketToRoom = {};
+const port = 3000 || process.env.PORT;
 
 app.use(express.static(__dirname));
-let clients = 0;
 
-io.on('connection', (socket) => { 
-    console.log("helo")
-    socket.on("newClient", () => {
-        console.log("hiii")
-        if(clients < 2) {
-            if(clients === 1) {
-                io.emit('createPeer');
+io.on('connection', socket => {
+    socket.on("join room", roomID => {
+        if (users[roomID]) {
+            const length = users[roomID].length;
+            if (length === 4) {
+                socket.emit("room full");
+                return;
             }
+            users[roomID].push(socket.id);
+        } else {
+            users[roomID] = [socket.id];
         }
-        else {
-            io.emit('sessionActive');
+        socketToRoom[socket.id] = roomID;
+        const usersInThisRoom = users[roomID].filter(id => id !== socket.id);
+        // console.log("all users")
+        socket.emit("all users", usersInThisRoom);
+    });
+
+    socket.on("sending signal", payload => {
+        // console.log("sending signal:",payload.callerID)
+        io.to(payload.userToSignal).emit('user joined', { signal: payload.signal, callerID: payload.callerID });
+    });
+
+    socket.on("returning signal", payload => {
+        // console.log("returning signal:",payload.callerID)
+        io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id });
+    });
+
+    socket.on('disconnect', () => {
+        const roomID = socketToRoom[socket.id];
+        let room = users[roomID];
+        console.log("id:",socket.id)
+        io.in(roomID).emit("removeClient",socket.id)
+        if (room.length) {
+            room = room.filter(id => id !== socket.id);
+            users[roomID] = room;
         }
-        clients ++;
+        
     });
-    socket.on('offer', (offer) => {
-        socket.broadcast.emit('backOffer', offer);
-    });
-    socket.on('answer', sendAnswer = (answer) => {
-        socket.broadcast.emit('backAnswer', answer);
-    });
-    socket.on('disconnect', disconnect);
+
 });
 
-const disconnect = () => {
-    if(clients > 0) {
-        clients --;
-    }
-}
-
-http.listen(port, () => console.log(`App active on port ${port}`));
+server.listen(port, () => console.log(`server is running on port ${port}`));
