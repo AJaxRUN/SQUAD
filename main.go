@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	socketio "github.com/googollee/go-socket.io"
 )
 
@@ -29,17 +30,6 @@ type answer struct {
 	Signal string
 }
 
-func getConnectionsCSV() string {
-	var cons string
-	for i, s := range connections {
-		cons += string(s.ID())
-		if i != len(connections)-1 {
-			cons += ","
-		}
-	}
-	return cons
-}
-
 func main() {
 	//port := "3000"
 	port := os.Getenv("PORT")
@@ -56,8 +46,15 @@ func main() {
 
 	server.OnEvent("/", "newClient", func(s socketio.Conn, room string) {
 		fmt.Println("New client:" + room)
-		fmt.Println("allUsers")
-		s.Emit("allUsers", getConnectionsCSV())
+		var conCsv string
+		for i, s := range connections {
+			conCsv += string(s.ID())
+			if i != len(connections)-1 {
+				conCsv += ","
+			}
+		}
+		fmt.Println("allUsers:" + conCsv)
+		s.Emit("allUsers", conCsv)
 		connections = append(connections, s)
 	})
 
@@ -110,11 +107,12 @@ func main() {
 		}
 	})
 
+	go server.Serve()
+	defer server.Close()
 
 	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("./")))
 	log.Println("Serving at localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
-	server.Serve()
-	defer server.Close()
+
 }
