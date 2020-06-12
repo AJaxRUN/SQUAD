@@ -41,7 +41,8 @@ func getConnectionsCSV() string {
 }
 
 func main() {
-	port := "3000"
+	//port := "3000"
+	port := os.Getenv("PORT")
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		log.Fatal(err)
