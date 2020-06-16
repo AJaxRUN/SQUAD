@@ -1,0 +1,36 @@
+{
+  "name": "SQUAD",
+  "version": "1.0.0",
+  "description": "Simple video chat app with webRTC",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server.js",
+    "watch": "npx watchify ./index.js -o ./bundle.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AJaxRUN/SQUAD.git"
+  },
+  "keywords": [
+    "video",
+    "chat",
+    "conferencing",
+    "webRTC"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AJaxRUN/SQUAD/issues"
+  },
+  "homepage": "https://github.com/AJaxRUN/SQUAD#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "nodemon": "^2.0.4",
+    "simple-peer": "^9.7.2",
+    "socket.io": "^2.3.0",
+    "uuid": "^8.1.0"
+  },
+  "devDependencies": {
+    "watchify": "^3.11.1"
+  }
+}
