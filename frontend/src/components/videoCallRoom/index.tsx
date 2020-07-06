@@ -1,94 +1,167 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './index.css';
-import { PictureInPictureVideo } from './pictureInPicture';
+import React, { useRef, useState, useEffect } from 'react';
 import SimplePeer from 'simple-peer';
 import io from 'socket.io-client';
-import { peerAndStreamInterface } from './types';
+import { peerObjectsType, streamObjectsType, payloadInterface } from './types';
+import { Layout } from './layout';
+import { Toolbar } from './toolbar';
+import { useHistory } from 'react-router';
+import { closeStream } from './common';
+
+import './index.css';
+
+async function getUserMediaFromBrowser(constraints: MediaStreamConstraints) {
+	const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+	return mediaStream;
+}
+
+function roomFull() {
+	alert('The room is full. Please try again later.');
+}
+
+function invalidRoom() {
+	alert('The room ID is invalid');
+}
+
+function closePeersAndStream(peers: peerObjectsType, stream: MediaStream|undefined|null) {
+	peers.forEach(value => {
+		value.destroy();
+	});
+	closeStream(stream);
+}
 
 export function VideoCallRoom() {
 	const socket = useRef<SocketIOClient.Socket>();
-	const unconnectedPeers = useRef<Array<SimplePeer.Instance>>([]);
-	const [myMediaStream, setMyMediaStream] = useState<MediaStream>();
-	const [peerAndStreamObjects, setpeerAndStreamObjects] = useState<Array<peerAndStreamInterface>>([]);
-	
+	const myMediaStream = useRef<MediaStream>();
+	const peerObjects = useRef<peerObjectsType>(new Map());
+	const history = useHistory();
+
+	const [streamObjects, setStreamObjects] = useState<streamObjectsType>(new Map()); 
+
 	useEffect(() => {
-		getUserMediaFromBrowser(true, true, false);
+		async function initialise() {
+			myMediaStream.current = await getUserMediaFromBrowser({audio: true, video: true});
+			peerObjects.current.forEach(peer => {
+				if(myMediaStream.current)
+					peer.addStream(myMediaStream.current);
+			});
+		}
+		initialise();
 		initialiseSocket();
 	}, []);
 
 	function initialiseSocket() {
+		const roomId = window.location.href.substring(window.location.href.lastIndexOf('/')+1);
+		console.log(roomId);
 		socket.current = io();
-		socket.current.emit('newClient');
-		socket.current.on('gotNewOffer', gotNewOffer);
-		socket.current.on('gotReturnOffer', gotReturnOffer);
-		socket.current.on('createPeer', createPeer);
-	}
-
-	async function getUserMediaFromBrowser(needVideo: boolean, needAudio: boolean, isScreenSharing: boolean) {
-		const mediaStream = await navigator.mediaDevices.getUserMedia({ video: needVideo, audio: needAudio});
-		setMyMediaStream(mediaStream);
-	}
-
-	function gotNewOffer(offer: SimplePeer.SignalData) {
-		const peer = initPeer('notInit');
-		console.log('gotNewOffer');
-		peer.on('signal', data => {
-			console.log('front signal:')
-			socket.current!.emit('answer', JSON.stringify(data));
-		});
-		peer.signal(offer);
-	}
-
-	function gotReturnOffer(answer: string | SimplePeer.SignalData) {
-		console.log("Signal Answer!");
-		if(unconnectedPeers.current.length > 1) {
-			const peer = unconnectedPeers.current.pop()!;
-			peer.signal(answer);
+		if(socket.current) {
+			socket.current.on('roomFull', roomFull);
+			socket.current.on('allUsers', receiveAllUsers);
+			socket.current.on('invalidRoom', invalidRoom);
+			socket.current.on('userJoined', newUserInRoom);
+			socket.current.on('receivingReturnedSignal', gotReturnOffer);
+			socket.current.on('removeClient', removeClient);
+			socket.current.emit('joinRoom', roomId);
 		}
 	}
 
-	function createPeer() {
-		const peer = initPeer('init');
-		peer.on('signal', (data) => {
-			console.log("make peer signal:")
-			socket.current!.emit('offer', JSON.stringify(data));
+	function receiveAllUsers(users: Array<string>) {
+		console.log(users);
+		users.forEach(userToSignal => {
+			const peer = initPeer('init', userToSignal);
+			peer.on('signal', (signal: SimplePeer.SignalData) => {
+				if(signal.type && signal.type.toString().toLowerCase() === 'offer' && socket.current)
+					socket.current.emit('sendingSignal', { userToSignal, signal });
+			});
 		});
 	}
 
-	function addNewPeerStream(peer: SimplePeer.Instance,stream: MediaStream) {
-		const temppeerAndStreamObjects = [...peerAndStreamObjects];
-		const index = peerAndStreamObjects.findIndex(({peerObject}) => peer === peerObject);
-		temppeerAndStreamObjects[index] = {
-			peerObject: peer,
-			streamObject: stream
-		};
-		setpeerAndStreamObjects(temppeerAndStreamObjects);
+	function newUserInRoom(payload: payloadInterface) {
+		const { callerId, signal } = payload;
+		const peer = initPeer('notInit', callerId);
+		peer.on('signal', (signal: SimplePeer.SignalData) => {
+			if(signal.type && (signal.type.toString()).toLowerCase() === 'answer' && socket.current)
+				socket.current.emit('returningSignal', { signal, callerId });
+		});
+		peer.signal(signal);
 	}
 
-	function initPeer(type: 'init'|'notInit') {
+	function gotReturnOffer(payload: payloadInterface) {
+		const { callerId, signal } = payload;
+		const peer = peerObjects.current.get(callerId);
+		if(peer)
+			peer.signal(signal);
+	}
+
+	function addStream(id: string, stream: MediaStream) {
+		setStreamObjects(prevStream => {
+			const tempStream = new Map(prevStream);
+			tempStream.set(id, stream);
+			return tempStream;
+		});
+	}
+
+	function deleteStream(id: string) {
+		setStreamObjects(prevStream => {
+			const tempStream = new Map(prevStream);
+			tempStream.delete(id);
+			return tempStream;
+		});
+	}
+
+	function removeClient(id: string) {
+		console.log('Deleting connections');
+		const peer = peerObjects.current.get(id);
+		peerObjects.current.delete(id);
+		if(peer)
+			peer.destroy();
+		deleteStream(id);
+	}
+
+	function initPeer(type: 'init'|'notInit', userId: string) {
+		console.log(myMediaStream);
 		const peer = new SimplePeer({
 			initiator: (type === 'init'),
-			stream: myMediaStream
+			stream: myMediaStream.current
 		});
 		peer.on('stream', (stream: MediaStream) => {
-			console.log('On stream signal');
-			addNewPeerStream(peer, stream);
+			console.log('Received stream');
+			console.log(stream);
+			addStream(userId, stream);
 		});
 		peer.on('close', () => {
-			const tempPeerAndStreamObjects = peerAndStreamObjects.filter(({peerObject}) => peerObject !== peer);
+			console.log('Deleting connection');
+			peerObjects.current.delete(userId);
+			deleteStream(userId);
 			peer.destroy();
-			setpeerAndStreamObjects(tempPeerAndStreamObjects);
 		});
-		const tempPeerAndStreamObjects = [...peerAndStreamObjects];
-		tempPeerAndStreamObjects.push({peerObject: peer, streamObject: null});
-		setpeerAndStreamObjects(tempPeerAndStreamObjects);
-		unconnectedPeers.current.push(peer);
+		peerObjects.current.set(userId, peer);
 		return peer;
 	}
-	
+
+	function disconnectCall() {
+		if(socket.current) {
+			socket.current.disconnect();
+			closePeersAndStream(peerObjects.current, myMediaStream.current);
+		}
+		history.push('/home');
+	}
+
+	async function toggleMicInCall(value: boolean) {
+		try {
+			const mediaStream = await getUserMediaFromBrowser({'video': true, 'audio': value});
+			myMediaStream.current = mediaStream;
+			return true;
+		}
+		catch(e) {
+			console.log(e);
+			return false;
+		}
+	}
+
 	return (
 		<div className='fillWindow'>
+			<Layout streamObjects={streamObjects}/>
+			<Toolbar disconnectCall={disconnectCall} toggleMicInCall={toggleMicInCall} />
 		</div>
 	);
 }
-

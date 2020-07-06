@@ -10,9 +10,9 @@ navigator.mediaDevices.getUserMedia({video:true, audio:true})
     .then(stream => {
         video.srcObject = stream;
         video.play();
-        socket.emit("join room", roomID);
+        socket.emit("joinRoom", roomID);
         
-        socket.on("all users", users => {
+        socket.on("allUsers", users => {
             users.forEach(userID => {
                 const peer = createPeer(userID, socket.id, stream);
                 peersRef.push({
@@ -22,16 +22,16 @@ navigator.mediaDevices.getUserMedia({video:true, audio:true})
             })
         })
 
-        socket.on("user joined", payload => {
-            const peer = addPeer(payload.signal, payload.callerID, stream);
+        socket.on("userJoined", payload => {
+            const peer = addPeer(payload.signal, payload.callerId, stream);
             
             peersRef.push({
-                peerID: payload.callerID,
+                peerID: payload.callerId,
                 peer,
             })
         });
 
-        socket.on("receiving returned signal", payload => {
+        socket.on("receivingReturnedSignal", payload => {
             const item = peersRef.find(p => p.peerID === payload.id);
             item.peer.signal(payload.signal);
         });
@@ -56,7 +56,7 @@ navigator.mediaDevices.getUserMedia({video:true, audio:true})
         video.play();
     }
 
-function createPeer(userToSignal, callerID, stream) {
+function createPeer(userToSignal, callerId, stream) {
     const peer = new Peer({
         initiator: true,
         trickle: false,
@@ -64,21 +64,21 @@ function createPeer(userToSignal, callerID, stream) {
     });
 
     peer.on("stream", (stream) => {
-        console.log("Received stream createPeer:", callerID);
+        console.log("Received stream createPeer:", callerId);
         createVideo(stream, userToSignal);
     });
 
     peer.on("signal", signal => {
         if(signal.type && (signal.type.toString()).toLowerCase() == "offer") {
             console.log("received offer:", signal)
-            socket.emit("sending signal", { userToSignal, callerID, signal })
+            socket.emit("sending signal", { userToSignal, callerId, signal })
         }
     })
 
     return peer;
 }
 
-function addPeer(incomingSignal, callerID, stream) {
+function addPeer(incomingSignal, callerId, stream) {
     const peer = new Peer({
         initiator: false,
         trickle: false,
@@ -86,14 +86,14 @@ function addPeer(incomingSignal, callerID, stream) {
     }); 
 
     peer.on("stream", (stream) => {
-        console.log("Received stream addPeer:", callerID);
-        createVideo(stream, callerID);
+        console.log("Received stream addPeer:", callerId);
+        createVideo(stream, callerId);
     });
 
     peer.on("signal", signal => {
         if(signal.type && (signal.type.toString()).toLowerCase() == "answer") {
             console.log("received answer:", signal)
-            socket.emit("returning signal", { signal, callerID })
+            socket.emit("returning signal", { signal, callerId })
         }
     })
 

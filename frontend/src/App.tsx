@@ -1,24 +1,23 @@
 import React from 'react';
 import './App.css';
 import { VideoCallRoom } from './components/videoCallRoom';
-
 import {
 	BrowserRouter as Router,
 	Switch,
 	Route,  
-	Link,
 	Redirect
 } from "react-router-dom";
+import { JoinCreateRoom } from './components/joinCreateRoom';
 
-import { Login } from './components/loginSignup/login'
 function App() {
 	return (
 		<div className="App">
 			<Router>
 				<Switch>
-				<Route path="/login" render={() => <Login isAuthed={true} />}/>
-				<Route path="/home" render={()=> <VideoCallRoom />} />        
-				<Redirect from="/" to="/login" />
+					<Route path="/room/*"><VideoCallRoom /></Route>
+					<Route path="/home"><JoinCreateRoom /></Route>
+
+					<Redirect from="/" to="/home" />
 				</Switch>
 			</Router>
 		</div>
