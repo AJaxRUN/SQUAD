@@ -44,7 +44,7 @@ io.on('connection', socket => {
         let room = users[roomID];
         console.log("id:",socket.id)
         io.in(roomID).emit("removeClient",socket.id)
-        if (room.length) {
+        if (room && room.length) {
             room = room.filter(id => id !== socket.id);
             users[roomID] = room;
         }
