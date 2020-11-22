@@ -1,0 +1,35 @@
+.page_bg {
+    background-color: #24292E;
+}
+
+.create-join_bg {
+    background-color: #2E373C;
+    color: white;
+    padding: 2%;
+}
+
+.copy_icon {
+    padding: 1%;
+    align-items: center;
+    font-size: small;
+    background-color: #425d6b;
+}
+
+.meeting_link_text {
+    color: lightskyblue;
+}
+
+.meeting_link {
+    color: white;
+}
+
+.meeting_link:hover {
+    color: lightskyblue;
+}
+
+.copy_icon:hover {
+    cursor: pointer;
+    color: lightskyblue;
+    background-color: #24292E;
+}
+/* #0166FF */

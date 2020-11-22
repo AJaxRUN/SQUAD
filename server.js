@@ -1,32 +1,51 @@
 const express = require("express");
 const http = require("http");
 const app = express();
+const { v4: uuidv4 } = require('uuid');
 const server = http.createServer(app);
 const socket = require("socket.io");
 const io = socket(server);
 
 const users = {};
+const rooms = [];
 const socketToRoom = {};
-const port = process.env.PORT;
+const port = 4000;
 
-app.use(express.static(__dirname));
+// app.use(express.static(__dirname));
+
+app.get("/getRoomId", (req, res) => {
+    var newRoomId = uuidv4();
+    while(users[newRoomId]) {
+        newRoomId = uuidv4();
+    }
+	rooms.push(newRoomId);
+	console.log("hii")
+    res.send({ portalId: newRoomId.toString() })
+});
 
 io.on('connection', socket => {
+    console.log("Connections")
     socket.on("join room", roomID => {
-        if (users[roomID]) {
-            const length = users[roomID].length;
-            if (length === 4) {
-                socket.emit("room full");
-                return;
+		console.log("Inside joinRoom")
+        if (rooms.includes(roomID)){    
+            if (users[roomID]) {
+                const length = users[roomID].length;
+                if (length === 4) {
+                    socket.emit("room full");
+                    return;
+                }
+                users[roomID].push(socket.id);
+            } else {
+                users[roomID] = [socket.id];
             }
-            users[roomID].push(socket.id);
-        } else {
-            users[roomID] = [socket.id];
+            socketToRoom[socket.id] = roomID;
+            const usersInThisRoom = users[roomID].filter(id => id !== socket.id);
+            // console.log("all users")
+            socket.emit("all users", usersInThisRoom);
         }
-        socketToRoom[socket.id] = roomID;
-        const usersInThisRoom = users[roomID].filter(id => id !== socket.id);
-        // console.log("all users")
-        socket.emit("all users", usersInThisRoom);
+        else {
+            socket.emit("invalid room", {})
+        }
     });
 
     socket.on("sending signal", payload => {
@@ -42,13 +61,15 @@ io.on('connection', socket => {
     socket.on('disconnect', () => {
         const roomID = socketToRoom[socket.id];
         let room = users[roomID];
-        console.log("id:",socket.id)
         io.in(roomID).emit("removeClient",socket.id)
         if (room && room.length) {
             room = room.filter(id => id !== socket.id);
             users[roomID] = room;
         }
-        
+        // if(!room || room === []) {
+        //     rooms.pop(roomID);
+        //     console.log("after:",rooms)
+        // }
     });
 
 });

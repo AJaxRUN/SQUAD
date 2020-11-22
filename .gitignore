@@ -4,19 +4,25 @@
 /node_modules
 /.pnp
 .pnp.js
+/portal/node_modules
+/portal/.pnp
+/portal.pnp.js
 
 # testing
-/coverage
+/portal/coverage
 
 # production
-/build
+/portal/build
+
+#personal
+/old_backend
 
 # misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+/portal.DS_Store
+/portal.env.local
+/portal.env.development.local
+/portal.env.test.local
+/portal.env.production.local
 
 npm-debug.log*
 yarn-debug.log*

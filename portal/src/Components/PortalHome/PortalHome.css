@@ -1,0 +1,29 @@
+.page_bg {
+    background-color: #24292E;
+}
+
+.create-join_bg {
+    background-color: #2E373C;
+    color: white;
+    padding: 2%;
+}
+
+.video_container {
+    padding-top: 4%;
+    padding-bottom:4%;
+    width: 100vw;
+    color: white;
+}
+
+.video_box {
+    display: flex !important;
+    height: 100% !important;
+    color: white;
+}
+
+.host_video {
+    height: 100% !important;
+    width: 50% !important;
+}
+
+/* #0166FF */
