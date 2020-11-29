@@ -20,7 +20,7 @@ app.get('/getRoomId', (req, res) => {
 		newRoomId = uuidv4();
 	while(users[newRoomId]);
 	rooms.push(newRoomId);
-	res.send({'success': true, 'roomId': newRoomId});
+	res.send({'success': true, 'portalId': newRoomId});
 });
 
 app.get('/doesRoomExist', (req, res) => {
@@ -30,7 +30,9 @@ app.get('/doesRoomExist', (req, res) => {
 });
 
 io.on('connection', socket => {
+	console.log('Connecting: '+socket.id)
 	socket.on('joinRoom', roomID => {
+		console.log('Inside joinRoom')
 		if (rooms.includes(roomID)) {    
 			if (users[roomID]) {
 				const length = users[roomID].length;

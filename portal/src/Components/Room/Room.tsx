@@ -1,7 +1,6 @@
-//@ts-nocheck
 import React, { useRef, useState, useEffect } from 'react';
 import SimplePeer from 'simple-peer';
-import socketIOClient from 'socket.io-client';
+import io from 'socket.io-client';
 import { peerObjectsType, streamObjectsType, payloadInterface } from './types';
 import { Layout } from './layout';
 import { Toolbar } from './toolbar';
@@ -30,16 +29,16 @@ function closePeersAndStream(peers: peerObjectsType, stream: MediaStream|undefin
 }
 
 function Room() {
-	// const socket = useRef<SocketIOClient.Socket>();
+	const socket = useRef<SocketIOClient.Socket>();
 	const myMediaStream = useRef<MediaStream>();
 	const peerObjects = useRef<peerObjectsType>(new Map());
 	const history = useHistory();
-	var socket='';
+	// var socket='';
 
 	const [streamObjects, setStreamObjects] = useState<streamObjectsType>(new Map()); 
 
 	useEffect(() => {
-		socket = socketIOClient()
+		socket.current = io('ws://localhost:8080')
 		async function initialise() {
 			myMediaStream.current = await getUserMediaFromBrowser({audio: false, video: true});
 			peerObjects.current.forEach(peer => {
@@ -48,31 +47,28 @@ function Room() {
 			});
 		}
 		initialise();
-		initialiseSocket();
-	}, []);
-	function initialiseSocket() {	
 		const roomId = window.location.href.substring(window.location.href.lastIndexOf('/')+1);
 		console.log(roomId)
-		if(socket) {
-			console.log("Socket id:" + socket.id)
-			socket.emit('joinRoom', roomId);
-			socket.on('roomFull', roomFull);
-			socket.on('allUsers', receiveAllUsers);
-			socket.on('invalidRoom', invalidRoom);
-			socket.on('userJoined', newUserInRoom);
-			socket.on('receivingReturnedSignal', gotReturnOffer);
-			socket.on('removeClient', removeClient);
+		if(socket.current) {
+			console.log("Socket id:" + socket.current.id)
+			socket.current.emit('joinRoom', roomId);
+			socket.current.on('roomFull', roomFull);
+			socket.current.on('allUsers', receiveAllUsers);
+			socket.current.on('invalidRoom', invalidRoom);
+			socket.current.on('userJoined', newUserInRoom);
+			socket.current.on('receivingReturnedSignal', gotReturnOffer);
+			socket.current.on('removeClient', removeClient);
 		}
-	}
-
+	}, []);
+	
 	function receiveAllUsers(users: Array<string>) {
 		console.log(users);
 		users.forEach(userToSignal => {
 			const peer = initPeer('init', userToSignal);
 			console.log("receiveing users/....")
 			peer.on('signal', (signal: SimplePeer.SignalData) => {
-				if(signal.type && signal.type.toString().toLowerCase() === 'offer' && socket)
-					socket.emit('sendingSignal', { userToSignal, signal });
+				if(signal.type && signal.type.toString().toLowerCase() === 'offer' && socket.current)
+					socket.current.emit('sendingSignal', { userToSignal, signal });
 			});
 		});
 	}
@@ -81,8 +77,8 @@ function Room() {
 		const { callerId, signal } = payload;
 		const peer = initPeer('notInit', callerId);
 		peer.on('signal', (signal: SimplePeer.SignalData) => {
-			if(signal.type && (signal.type.toString()).toLowerCase() === 'answer' && socket)
-				socket.emit('returningSignal', { signal, callerId });
+			if(signal.type && (signal.type.toString()).toLowerCase() === 'answer' && socket.current)
+				socket.current.emit('returningSignal', { signal, callerId });
 		});
 		peer.signal(signal);
 	}
@@ -141,8 +137,8 @@ function Room() {
 	}
 
 	function disconnectCall() {
-		if(socket) {
-			socket.disconnect();
+		if(socket.current) {
+			socket.current.disconnect();
 			closePeersAndStream(peerObjects.current, myMediaStream.current);
 		}
 		history.push('/home');
