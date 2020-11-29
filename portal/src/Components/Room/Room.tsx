@@ -1,14 +1,13 @@
+//@ts-nocheck
 import React, { useRef, useState, useEffect } from 'react';
 import SimplePeer from 'simple-peer';
-import io from 'socket.io-client';
+import socketIOClient from 'socket.io-client';
 import { peerObjectsType, streamObjectsType, payloadInterface } from './types';
 import { Layout } from './layout';
 import { Toolbar } from './toolbar';
 import { useHistory } from 'react-router-dom';
 import { closeStream } from './common';
 import './index.css';
-
-const socket = io('http://localhost:4000')
 
 async function getUserMediaFromBrowser(constraints: MediaStreamConstraints) {
 	const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -35,10 +34,12 @@ function Room() {
 	const myMediaStream = useRef<MediaStream>();
 	const peerObjects = useRef<peerObjectsType>(new Map());
 	const history = useHistory();
+	var socket='';
 
 	const [streamObjects, setStreamObjects] = useState<streamObjectsType>(new Map()); 
 
 	useEffect(() => {
+		socket = socketIOClient()
 		async function initialise() {
 			myMediaStream.current = await getUserMediaFromBrowser({audio: false, video: true});
 			peerObjects.current.forEach(peer => {
@@ -52,10 +53,9 @@ function Room() {
 	function initialiseSocket() {	
 		const roomId = window.location.href.substring(window.location.href.lastIndexOf('/')+1);
 		console.log(roomId)
-		// socket.current = io();
 		if(socket) {
+			console.log("Socket id:" + socket.id)
 			socket.emit('joinRoom', roomId);
-			console.log("inside if");
 			socket.on('roomFull', roomFull);
 			socket.on('allUsers', receiveAllUsers);
 			socket.on('invalidRoom', invalidRoom);

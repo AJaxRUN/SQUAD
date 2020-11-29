@@ -7,7 +7,7 @@ import {
 import './PortalHome.css'
 import axios from 'axios'
 import Peer from 'simple-peer'
-import io from 'socket.io-client'
+// import io from 'socket.io-client'
 // const socket = io('http://localhost:8080');
 // let client = {gotAnswer: false, peer: ''};
 
