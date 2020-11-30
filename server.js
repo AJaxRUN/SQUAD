@@ -30,9 +30,9 @@ app.get('/doesRoomExist', (req, res) => {
 });
 
 io.on('connection', socket => {
-	console.log('Connecting: '+socket.id)
+	// console.log('Connecting: '+socket.id)
 	socket.on('joinRoom', roomID => {
-		console.log('Inside joinRoom')
+		// console.log('Inside joinRoom')
 		if (rooms.includes(roomID)) {    
 			if (users[roomID]) {
 				const length = users[roomID].length;
@@ -54,13 +54,13 @@ io.on('connection', socket => {
 	});
 
 	socket.on('sendingSignal', payload => {
-		console.log('sending signal:');
+		// console.log('sending signal:');
 		// console.log(payload);
 		io.to(payload.userToSignal).emit('userJoined', { signal: payload.signal, callerId: socket.id });
 	});
 
 	socket.on('returningSignal', payload => {
-		console.log('returning signal:');
+		// console.log('returning signal:');
 		// console.log(payload);
 		io.to(payload.callerId).emit('receivingReturnedSignal', { signal: payload.signal, callerId: socket.id });
 	});
@@ -76,4 +76,4 @@ io.on('connection', socket => {
 	});
 });
 
-server.listen(port, () => console.log(`server is running on port ${port}`));
+// server.listen(port, () => console.log(`server is running on port ${port}`));

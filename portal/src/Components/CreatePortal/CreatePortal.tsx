@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import {
   Row,
-  Button,
   Spinner
 } from 'react-bootstrap'
 import './CreatePortal.css'
-import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { Copy } from 'react-feather'
 import { getNewRoomId } from '../../utils/fetchCalls';
@@ -26,8 +24,7 @@ const CreatePortal = (props: any) => {
         getNewRoomId()
             .then(response => {
                 console.log(response)
-                //@ts-ignore
-                setPortalId("/portal/"+response.portalId)
+                setPortalId("/portal/"+response?.portalId)
             })
             .catch(err =>{
                 console.log(err)

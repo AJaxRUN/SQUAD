@@ -33,12 +33,11 @@ function Room() {
 	const myMediaStream = useRef<MediaStream>();
 	const peerObjects = useRef<peerObjectsType>(new Map());
 	const history = useHistory();
-	// var socket='';
 
 	const [streamObjects, setStreamObjects] = useState<streamObjectsType>(new Map()); 
 
 	useEffect(() => {
-		socket.current = io('ws://localhost:8080')
+		socket.current = io()
 		async function initialise() {
 			myMediaStream.current = await getUserMediaFromBrowser({audio: false, video: true});
 			peerObjects.current.forEach(peer => {

@@ -18,7 +18,7 @@ interface baseResponse {
 }
 
 interface getNewRoomIdResponse extends baseResponse {
-	roomId: string;
+	portalId: string;
 }
 
 interface roomExistsResponse extends baseResponse {
